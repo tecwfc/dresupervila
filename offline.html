@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - Supervila DRE</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #111827, #1f2937);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .offline-card {
+      background: rgba(31, 41, 55, 0.9);
+      backdrop-filter: blur(10px);
+      padding: 40px 30px;
+      border-radius: 24px;
+      max-width: 350px;
+      width: 100%;
+      border: 1px solid rgba(227, 29, 26, 0.3);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      background: rgba(227, 29, 26, 0.2);
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      border: 2px solid #e31d1a;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(227, 29, 26, 0.7); }
+      70% { box-shadow: 0 0 0 15px rgba(227, 29, 26, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(227, 29, 26, 0); }
+    }
+    
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+      color: #e31d1a;
+      font-weight: 700;
+    }
+    
+    p {
+      font-size: 15px;
+      color: #9ca3af;
+      margin-bottom: 25px;
+      line-height: 1.5;
+    }
+    
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    button {
+      background: #e31d1a;
+      color: white;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+    }
+    
+    button:hover {
+      background: #b71c1c;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(227, 29, 26, 0.4);
+    }
+    
+    button.secondary {
+      background: transparent;
+      border: 1px solid #e31d1a;
+      color: #e31d1a;
+    }
+    
+    button.secondary:hover {
+      background: rgba(227, 29, 26, 0.1);
+      border-color: #e31d1a;
+      color: white;
+    }
+    
+    .status {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #6b7280;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+    
+    .dot {
+      width: 8px;
+      height: 8px;
+      background: #ef4444;
+      border-radius: 50%;
+      animation: blink 1.5s infinite;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-card">
+    <div class="icon">📴</div>
+    <h1>Sem conexão</h1>
+    <p>Você está offline no momento. Conecte-se à internet para continuar usando o sistema Supervila DRE.</p>
+    
+    <div class="button-group">
+      <button onclick="window.location.reload()">
+        🔄 Tentar novamente
+      </button>
+      <button class="secondary" onclick="window.location.href='./'">
+        🏠 Ir para o início
+      </button>
+    </div>
+    
+    <div class="status">
+      <span class="dot"></span>
+      <span>Modo offline - Aguardando conexão</span>
+    </div>
+  </div>
+</body>
+</html>

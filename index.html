@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=yes">
+  <title>Supervila - Sistema DRE</title>
+
+  <!-- Bibliotecas (CDNs - esses URLs externos não mudam) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+
+  <!-- PWA Meta Tags para iOS -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Supervila DRE">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+
+<!-- Ícones para iOS (diferentes tamanhos) -->
+<link rel="apple-touch-icon" href="assets/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="152x152" href="assets/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icon-192x192.png">
+<link rel="apple-touch-icon" sizes="167x167" href="assets/icon-192x192.png">
+
+<!-- Splash screens para iOS (opcional) -->
+<link rel="apple-touch-startup-image" href="assets/splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)">
+
+  <!-- PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Supervila DRE">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  
+  <!-- ARQUIVOS LOCAIS - Use caminhos relativos SEM a barra inicial -->
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/icon-192x192.png">
+  <link rel="apple-touch-startup-image" href="assets/icon-512x512.png">
+</head>
+<body>
+  <!-- TELA DE LOGIN -->
+  <div id="telaLogin">
+    <div class="login-card">
+      <div class="login-logo">
+        <!-- Caminho da logo - relativo -->
+        <img src="assets/logo_supervila.png" alt="Logo Supervila">
+        <h2>Sistema DRE</h2>
+        <p>Faça login para acessar</p>
+      </div>
+
+      <div id="loginForm">
+        <div class="field">
+          <label>Empresa</label>
+          <select id="inputEmpresa" class="empresa-select" onchange="onEmpresaChange()">
+            <option value="">Selecione</option>
+            <option value="supervilaalta">Supervila Alta</option>
+            <option value="supervilamuriti">Supervila Muriti</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Usuário</label>
+          <input type="text" id="inputUsuario" placeholder="Digite seu usuário" autocomplete="off"
+            onkeypress="if (event.key === 'Enter') document.getElementById('inputSenha').focus();" />
+        </div>
+
+        <div class="field">
+          <label>Senha</label>
+          <div class="pwd-wrap">
+            <input type="password" id="inputSenha" placeholder="Digite sua senha" autocomplete="off"
+              onkeypress="if (event.key === 'Enter') verificarLogin();" />
+            <button type="button" class="pwd-toggle" onclick="toggleSenha('inputSenha', this)">👁️</button>
+          </div>
+        </div>
+
+        <div class="msg-erro" id="msgErro">❌ Usuário ou senha inválidos!</div>
+
+        <button class="btn-login" onclick="verificarLogin()">
+          <span>Entrar</span>
+          <span>→</span>
+        </button>
+      </div>
+
+      <div class="spinner-wrap" id="carregando">
+        <div class="spinner"></div>
+        <p>Verificando...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP PRINCIPAL -->
+  <div id="app">
+    <!-- Top bar (mobile) -->
+    <div class="topbar">
+      <div class="logo-sm">
+        <img src="assets/logo_supervila.png" alt="Logo Supervila" class="logo-top">
+        <div class="unidade-sm" id="topUnidade">—</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-logout" onclick="fazerLogout()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sidebar (desktop) -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <img src="assets/logo_supervila.png" alt="Logo Supervila" class="logo-sidebar">
+        <div class="unit-badge">
+          <span class="lbl">Unidade</span>
+          <span class="val" id="sideUnidade">—</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" onclick="mudarTab('dash', this)">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <rect x="3" y="3" width="7" height="9" />
+            <rect x="14" y="3" width="7" height="5" />
+            <rect x="14" y="12" width="7" height="9" />
+            <rect x="3" y="16" width="7" height="5" />
+          </svg>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" onclick="mudarTab('dre', this)">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <line x1="12" y1="20" x2="12" y2="10" />
+            <line x1="18" y1="20" x2="18" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="16" />
+          </svg>
+          <span>DRE</span>
+        </button>
+        <button class="nav-item" onclick="mudarTab('lancar', this)">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="16" />
+            <line x1="8" y1="12" x2="16" y2="12" />
+          </svg>
+          <span>Novo</span>
+        </button>
+        <button class="nav-item" onclick="mudarTab('historico', this)">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+          <span>Livro</span>
+        </button>
+        <button class="nav-item" onclick="mudarTab('config', this)">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+          <span>Config</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="sideUsuario">—</div>
+          <div class="user-details">
+            <span class="user-name" id="sideUsuarioNome">—</span>
+            <span class="user-role">Operador</span>
+          </div>
+        </div>
+        <button class="btn-logout-desk" onclick="fazerLogout()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          <span>Sair</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Conteúdo scrollável -->
+    <div class="content-scroll">
+      <!-- DASHBOARD -->
+      <div class="page active" id="tab-dash">
+        <div class="page-header">
+          <h1>Dashboard</h1>
+          <span class="date-badge" id="currentDate"></span>
+        </div>
+
+        <div class="welcome-card">
+          <div class="welcome-content">
+            <h2>Olá, <span id="nomeOperador">Operador</span>!</h2>
+            <p><strong id="txtUnidade">—</strong></p>
+          </div>
+          <div class="welcome-icon">📊</div>
+        </div>
+
+        <div class="cards-grid">
+          <div class="stat-card">
+            <div class="stat-icon green">💰</div>
+            <div class="stat-content">
+              <span class="stat-label">Recebido</span>
+              <span class="stat-value" id="cardReceitas">R$ 0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon rose">💸</div>
+            <div class="stat-content">
+              <span class="stat-label">Pago</span>
+              <span class="stat-value" id="cardPago">R$ 0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange">📈</div>
+            <div class="stat-content">
+              <span class="stat-label">Fluxo</span>
+              <span class="stat-value" id="cardFluxo">R$ 0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon slate">📋</div>
+            <div class="stat-content">
+              <span class="stat-label">Prévio</span>
+              <span class="stat-value" id="cardPrevio">R$ 0</span>
+            </div>
+          </div>
+          <div class="stat-card highlight">
+            <div class="stat-icon">🏦</div>
+            <div class="stat-content">
+              <span class="stat-label">Saldo</span>
+              <span class="stat-value large" id="cardSaldo">R$ 0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>Proporção</h3>
+              <span class="chart-badge">Doughnut</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="graficoPizza"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>Comparativo</h3>
+              <span class="chart-badge">Barras</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="graficoBarras"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DRE -->
+      <div class="page" id="tab-dre">
+        <div class="page-header">
+          <h1>DRE</h1>
+          <span class="page-badge">Resultado</span>
+        </div>
+
+        <div class="filter-section">
+          <div class="filter-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <span>Período</span>
+          </div>
+          <div class="filter-body">
+            <select id="drePeriodoTipo" class="filter-select" onchange="atualizarDrePeriodo()">
+              <option value="mes">Mês Atual</option>
+              <option value="mesPersonalizado">Mês Específico</option>
+              <option value="periodo">Período</option>
+              <option value="ano">Ano</option>
+            </select>
+
+            <div id="dreWrapMes" class="filter-group" style="display: none">
+              <select id="dreMes" class="filter-select"></select>
+              <select id="dreAno" class="filter-select"></select>
+            </div>
+
+            <div id="dreWrapPeriodo" class="filter-group" style="display: none">
+              <input type="date" id="dreInicio" class="filter-input" />
+              <input type="date" id="dreFim" class="filter-input" />
+            </div>
+
+            <button class="btn-pdf" onclick="gerarPDFDRE()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+              <span>PDF</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="dre-cards">
+          <div class="dre-card receita-bruta">
+            <div class="dre-card-header">
+              <span class="dre-icon">💰</span>
+              <span class="dre-label">Receita Bruta</span>
+            </div>
+            <div class="dre-value" id="dreReceitaBruta">R$ 0</div>
+          </div>
+          <div class="dre-card deducoes">
+            <div class="dre-card-header">
+              <span class="dre-icon">📉</span>
+              <span class="dre-label">Deduções</span>
+            </div>
+            <div class="dre-value negative" id="dreDeducoes">R$ 0</div>
+          </div>
+          <div class="dre-card receita-liquida">
+            <div class="dre-card-header">
+              <span class="dre-icon">📊</span>
+              <span class="dre-label">Receita Líquida</span>
+            </div>
+            <div class="dre-value" id="dreReceitaLiquida">R$ 0</div>
+          </div>
+          <div class="dre-card custos">
+            <div class="dre-card-header">
+              <span class="dre-icon">🏭</span>
+              <span class="dre-label">Custos/CMV</span>
+            </div>
+            <div class="dre-value negative" id="dreCustos">R$ 0</div>
+          </div>
+          <div class="dre-card lucro-bruto">
+            <div class="dre-card-header">
+              <span class="dre-icon">📈</span>
+              <span class="dre-label">Lucro Bruto</span>
+            </div>
+            <div class="dre-value" id="dreLucroBruto">R$ 0</div>
+          </div>
+          <div class="dre-card despesas">
+            <div class="dre-card-header">
+              <span class="dre-icon">💸</span>
+              <span class="dre-label">Despesas</span>
+            </div>
+            <div class="dre-value negative" id="dreDespesas">R$ 0</div>
+          </div>
+          <div class="dre-card lucro-liquido">
+            <div class="dre-card-header">
+              <span class="dre-icon">🏆</span>
+              <span class="dre-label">Lucro Líquido</span>
+            </div>
+            <div class="dre-value" id="dreLucroLiquido">R$ 0</div>
+          </div>
+        </div>
+
+        <div class="margins-section">
+          <div class="margin-card">
+            <span class="margin-label">Margem Bruta</span>
+            <span class="margin-value" id="dreMargemBruta">0%</span>
+          </div>
+          <div class="margin-card">
+            <span class="margin-label">Margem Líquida</span>
+            <span class="margin-value" id="dreMargemLiquida">0%</span>
+          </div>
+        </div>
+
+        <div class="detalhamento-section">
+          <div class="section-header clickable" onclick="toggleDetalhamento()">
+            <h3>Detalhamento DRE</h3>
+            <svg class="toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+          <div id="dreDetalhamento" class="detalhamento-content"></div>
+        </div>
+      </div>
+
+      <!-- NOVO LANÇAMENTO -->
+      <div class="page" id="tab-lancar">
+        <div class="page-header">
+          <h1>Novo</h1>
+          <span class="page-badge">Registro</span>
+        </div>
+
+        <div class="form-container">
+          <div class="form-grid">
+            <div class="form-field full">
+              <label>Data</label>
+              <input type="date" id="data" class="form-input" />
+            </div>
+
+            <div class="form-field full">
+              <label>Descrição</label>
+              <select id="desc" class="form-select" onchange="preencherDescricao(this.value)">
+                <option value="">Selecione...</option>
+              </select>
+              <input type="text" id="descManual" class="form-input" placeholder="Digite manualmente"
+                style="margin-top: 6px; display: none;" />
+            </div>
+
+            <div class="form-field full">
+              <label>Classificação</label>
+              <select id="tipoDRE" class="form-select">
+                <option value="receita">💰 Receita</option>
+                <option value="deducao">📉 Dedução</option>
+                <option value="custo">🏭 Custo</option>
+                <option value="despesa">💸 Despesa</option>
+                <option value="outro">📦 Outro</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label>Tipo</label>
+              <select id="tipoOperacao" class="form-select" onchange="updateSelectColor(this)">
+                <option value="recebido">💰 Entrada</option>
+                <option value="pago">💸 Saída</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label>Valor (R$)</label>
+              <input type="number" step="0.01" id="valor" class="form-input" placeholder="0,00" />
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-primary" id="btnLancar" onclick="lancar()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                <polyline points="17 21 17 13 7 13 7 21" />
+                <polyline points="7 3 7 8 15 8" />
+              </svg>
+              <span>Salvar</span>
+            </button>
+            <button class="btn-secondary" onclick="limparCamposLancamento()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M3 6h18" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+              </svg>
+              <span>Limpar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIVRO DE CAIXA -->
+      <div class="page" id="tab-historico">
+        <div class="page-header">
+          <h1>Livro Caixa</h1>
+          <span class="page-badge">Histórico</span>
+        </div>
+
+        <div class="balance-card">
+          <div class="balance-info">
+            <span class="balance-label">Saldo Prévio</span>
+            <span class="balance-value" id="bannerPrevio">R$ 0</span>
+          </div>
+          <div class="balance-icon">💰</div>
+        </div>
+
+        <div class="filter-section compact">
+          <div class="filter-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polygon points="22 3 2 3 10 13.46 10 19 14 21 14 13.46 22 3" />
+            </svg>
+            <span>Filtrar</span>
+          </div>
+          <div class="filter-body">
+            <select id="filtroTipo" class="filter-select" onchange="atualizarFiltroPeriodo()">
+              <option value="mes">Por Mês</option>
+              <option value="periodo">Por Período</option>
+            </select>
+
+            <div id="wrapMes" class="filter-group">
+              <select id="filtroMes" class="filter-select"></select>
+              <select id="filtroMesAno" class="filter-select"></select>
+            </div>
+
+            <div id="wrapPeriodo" class="filter-group" style="display: none">
+              <input type="date" id="filtroPeriodoInicio" class="filter-input" />
+              <input type="date" id="filtroPeriodoFim" class="filter-input" />
+            </div>
+
+            <button class="btn-pdf" onclick="gerarPDFLivroCaixa()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+              <span>PDF</span>
+            </button>
+
+            <button class="btn-del" onclick="excluirTodosLancamentos()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+              </svg>
+              <span>Excluir Todos</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="libroCards" class="entries-list"></div>
+      </div>
+
+      <!-- CONFIGURAÇÕES -->
+      <div class="page" id="tab-config">
+        <div class="page-header">
+          <h1>Config</h1>
+          <span class="page-badge">Sistema</span>
+        </div>
+
+        <div class="config-grid">
+          <div class="config-card">
+            <div class="config-card-header">
+              <div class="config-icon">💰</div>
+              <div>
+                <h3>Saldo Inicial</h3>
+                <p>Alterar saldo</p>
+              </div>
+            </div>
+
+            <div class="config-card-body">
+              <div class="config-field">
+                <label>Novo Saldo (R$)</label>
+                <input type="number" step="0.01" id="inputSaldoPrevio" class="config-input" placeholder="0,00" />
+              </div>
+
+              <div class="config-field">
+                <label>Senha</label>
+                <div class="password-field">
+                  <input type="password" id="senhaConfirmacao" class="config-input" placeholder="••••••" />
+                  <button type="button" class="password-toggle"
+                    onclick="toggleSenha('senhaConfirmacao', this)">👁️</button>
+                </div>
+              </div>
+
+              <div class="msg-erro" id="msgErroConfig"></div>
+              <div class="msg-sucesso" id="msgSucessoConfig">✅ Saldo atualizado!</div>
+
+              <button class="btn-config" onclick="salvarConfiguracoes()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg>
+                <span>Atualizar</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="config-card">
+            <div class="config-card-header">
+              <div class="config-icon">📝</div>
+              <div>
+                <h3>Descrições</h3>
+                <p>Gerenciar</p>
+              </div>
+            </div>
+
+            <div class="config-card-body">
+              <div class="config-field">
+                <label>Nova Descrição</label>
+                <div class="input-group">
+                  <input type="text" id="novaDescricao" class="config-input" placeholder="Ex: Venda" />
+                  <button class="btn-add" onclick="cadastrarDescricao()">+</button>
+                </div>
+              </div>
+
+              <div class="config-field">
+                <label>Classificação</label>
+                <select id="classificacaoDescricao" class="config-select">
+                  <option value="">Não classificar</option>
+                  <option value="receita">💰 Receita</option>
+                  <option value="deducao">📉 Dedução</option>
+                  <option value="custo">🏭 Custo</option>
+                  <option value="despesa">💸 Despesa</option>
+                </select>
+              </div>
+
+              <div class="descricoes-header">
+                <span>Descrições</span>
+                <span class="badge" id="contadorDescricoes">0</span>
+              </div>
+
+              <div id="listaDescricoes" class="descricoes-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <circle cx="12" cy="8" r="1" />
+            </svg>
+            <h4>Sistema DRE</h4>
+          </div>
+          <div class="info-content">
+            <p><strong>Classificações:</strong></p>
+            <ul>
+              <li>💰 Receita: Vendas</li>
+              <li>📉 Deduções: Impostos</li>
+              <li>🏭 Custo: CMV</li>
+              <li>💸 Despesas: Operacionais</li>
+            </ul>
+          </div>
+          <div class="info-footer">
+            <span>v2.0</span>
+            <span>● Online</span>
+          </div>
+        </div>
+      </div>
+    </div> <!-- Fim do content-scroll -->
+
+    <!-- Bottom nav (mobile) - AGORA FORA do content-scroll -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" onclick="mudarTab('dash', this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect x="3" y="3" width="7" height="9" />
+          <rect x="14" y="3" width="7" height="5" />
+          <rect x="14" y="12" width="7" height="9" />
+          <rect x="3" y="16" width="7" height="5" />
+        </svg>
+        <span>Início</span>
+      </button>
+      <button class="nav-btn" onclick="mudarTab('dre', this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <line x1="12" y1="20" x2="12" y2="10" />
+          <line x1="18" y1="20" x2="18" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="16" />
+        </svg>
+        <span>DRE</span>
+      </button>
+      <button class="nav-btn" onclick="mudarTab('lancar', this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="16" />
+          <line x1="8" y1="12" x2="16" y2="12" />
+        </svg>
+        <span>Novo</span>
+      </button>
+      <button class="nav-btn" onclick="mudarTab('historico', this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+        </svg>
+        <span>Livro</span>
+      </button>
+      <button class="nav-btn" onclick="mudarTab('config', this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+        <span>Config</span>
+      </button>
+    </nav>
+  </div> <!-- Fim do app -->
+
+  <!-- MODAL EDITAR -->
+  <div class="modal-overlay" id="modalEditar" onclick="if (event.target === this) fecharModal();">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Editar</h3>
+        <button class="modal-close" onclick="fecharModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="editId" />
+
+        <div class="modal-field">
+          <label>Data</label>
+          <input type="date" id="editData" class="modal-input" />
+        </div>
+
+        <div class="modal-field">
+          <label>Descrição</label>
+          <select id="editDesc" class="modal-select">
+            <option value="">Selecione...</option>
+          </select>
+          <input type="text" id="editDescManual" class="modal-input" placeholder="Digite..."
+            style="margin-top: 6px; display: none;" />
+        </div>
+
+        <div class="modal-field">
+          <label>Classificação</label>
+          <select id="editTipoDRE" class="modal-select">
+            <option value="receita">💰 Receita</option>
+            <option value="deducao">📉 Dedução</option>
+            <option value="custo">🏭 Custo</option>
+            <option value="despesa">💸 Despesa</option>
+            <option value="outro">📦 Outro</option>
+          </select>
+        </div>
+
+        <div class="modal-row">
+          <div class="modal-field">
+            <label>Tipo</label>
+            <select id="editTipo" class="modal-select">
+              <option value="recebido">💰 Entrada</option>
+              <option value="pago">💸 Saída</option>
+            </select>
+          </div>
+          <div class="modal-field">
+            <label>Valor (R$)</label>
+            <input type="number" step="0.01" id="editValor" class="modal-input" />
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-primary" id="btnSalvarEditar" onclick="salvarEditar()">Salvar</button>
+        <button class="btn-secondary" onclick="fecharModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+
+
+  <script>
+// Registro do Service Worker com tratamento de erros
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // Tentar registrar com caminho relativo
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
+      .then(registration => {
+        console.log('✅ Service Worker registrado com sucesso:', registration.scope);
+        
+        // Verificar atualizações
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          console.log('🔄 Nova versão do Service Worker detectada');
+        });
+      })
+      .catch(error => {
+        console.log('❌ Falha no registro do Service Worker:', error);
+        
+        // Tentar caminho absoluto como fallback
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+          .then(registration => {
+            console.log('✅ Service Worker registrado (caminho absoluto):', registration.scope);
+          })
+          .catch(err => {
+            console.log('❌ Todas as tentativas falharam:', err);
+          });
+      });
+    
+    // Verificar se já está ativo
+    navigator.serviceWorker.ready.then(registration => {
+      console.log('✅ Service Worker pronto e ativo');
+    });
+  });
+  
+  // Monitorar mudanças de conexão
+  window.addEventListener('online', () => {
+    console.log('📶 Conexão restabelecida');
+    // Recarregar a página automaticamente se estiver offline
+    if (document.body.classList.contains('offline-mode')) {
+      window.location.reload();
+    }
+  });
+  
+  window.addEventListener('offline', () => {
+    console.log('📴 Conexão perdida');
+    document.body.classList.add('offline-mode');
+  });
+}
+
+// Cache busting para desenvolvimento
+const CACHE_BUST = Date.now();
+console.log('Cache bust:', CACHE_BUST);
+</script>
+</body>
+</html>
