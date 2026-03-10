@@ -741,15 +741,17 @@
 
   <script src="script.js"></script>
 
-
-  <script>
-// Registro do Service Worker com tratamento de erros
+<script>
+// Registro do Service Worker com tratamento de erros melhorado
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Tentar registrar com caminho relativo
-    navigator.serviceWorker.register('./sw.js', { scope: './' })
+    // Determinar o caminho base
+    const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    
+    // Tentar registrar com caminho relativo ao root
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .then(registration => {
-        console.log('✅ Service Worker registrado com sucesso:', registration.scope);
+        console.log('✅ Service Worker registrado com sucesso (root):', registration.scope);
         
         // Verificar atualizações
         registration.addEventListener('updatefound', () => {
@@ -758,15 +760,24 @@ if ('serviceWorker' in navigator) {
         });
       })
       .catch(error => {
-        console.log('❌ Falha no registro do Service Worker:', error);
+        console.log('❌ Falha no registro do Service Worker (root):', error);
         
-        // Tentar caminho absoluto como fallback
-        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        // Tentar caminho relativo
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
           .then(registration => {
-            console.log('✅ Service Worker registrado (caminho absoluto):', registration.scope);
+            console.log('✅ Service Worker registrado (relativo):', registration.scope);
           })
           .catch(err => {
             console.log('❌ Todas as tentativas falharam:', err);
+            
+            // Mostrar notificação para o usuário
+            if (typeof mostrarToastPersonalizado === 'function') {
+              mostrarToastPersonalizado({
+                titulo: '⚠️ Modo Offline Limitado',
+                mensagem: 'O app funcionará, mas pode não funcionar offline',
+                tipo: 'warning'
+              });
+            }
           });
       });
     
@@ -779,8 +790,11 @@ if ('serviceWorker' in navigator) {
   // Monitorar mudanças de conexão
   window.addEventListener('online', () => {
     console.log('📶 Conexão restabelecida');
-    // Recarregar a página automaticamente se estiver offline
-    if (document.body.classList.contains('offline-mode')) {
+    document.body.classList.remove('offline-mode');
+    
+    // Recarregar a página se estava offline
+    if (sessionStorage.getItem('wasOffline') === 'true') {
+      sessionStorage.removeItem('wasOffline');
       window.location.reload();
     }
   });
@@ -788,8 +802,46 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('offline', () => {
     console.log('📴 Conexão perdida');
     document.body.classList.add('offline-mode');
+    sessionStorage.setItem('wasOffline', 'true');
   });
 }
+
+// Função para forçar atualização do Service Worker
+function atualizarServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then(registration => {
+      if (registration) {
+        registration.update().then(() => {
+          console.log('Service Worker atualizado');
+          window.location.reload();
+        });
+      }
+    });
+  }
+}
+
+// Adicionar botão de atualização escondido (pode ser ativado com clique no logo)
+document.addEventListener('DOMContentLoaded', function() {
+  const logos = document.querySelectorAll('.logo-top, .logo-sidebar');
+  let clickCount = 0;
+  
+  logos.forEach(logo => {
+    logo.addEventListener('click', function(e) {
+      clickCount++;
+      
+      if (clickCount === 5) { // 5 cliques no logo ativa a atualização
+        clickCount = 0;
+        atualizarServiceWorker();
+        alert('🔄 Atualizando Service Worker...');
+      }
+      
+      // Reset após 3 segundos
+      setTimeout(() => {
+        clickCount = 0;
+      }, 3000);
+    });
+  });
+});
 
 // Cache busting para desenvolvimento
 const CACHE_BUST = Date.now();
