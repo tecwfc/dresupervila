@@ -233,6 +233,12 @@ function onEmpresaChange() {
 // ==================== FUNÇÃO entrarNoApp MODIFICADA ====================
 
 async function entrarNoApp() {
+
+   // Adicionar timestamp à sessão
+  if (usuarioLogado) {
+    usuarioLogado.timestamp = Date.now();
+    localStorage.setItem('supervilaSessao', JSON.stringify(usuarioLogado));
+  }
   // Esconder login e mostrar app
   document.getElementById('telaLogin').classList.add('hidden');
   document.getElementById('app').classList.add('show');
@@ -275,52 +281,161 @@ async function entrarNoApp() {
   }
 }
 
-
-// ==================== FUNÇÃO fazerLogout MODIFICADA ====================
+// ==================== FUNÇÃO fazerLogout CORRIGIDA ====================
 function fazerLogout() {
   Swal.fire({
-    title: 'Sair?',
+    title: 'Sair do sistema?',
+    text: 'Você será desconectado e precisará fazer login novamente.',
     icon: 'question',
     showCancelButton: true,
     confirmButtonColor: '#e31d1a',
-    confirmButtonText: 'Sim',
-    cancelButtonText: 'Não'
-  }).then((result) => {
+    confirmButtonText: 'Sim, sair',
+    cancelButtonText: 'Cancelar',
+    reverseButtons: true
+  }).then(async (result) => {
     if (result.isConfirmed) {
-      // Limpar sessão e recarregar
-      localStorage.removeItem("supervilaSessao");
-      usuarioLogado = null;
       
-      // Esconder app e mostrar login
-      document.getElementById('app').classList.remove('show');
-      document.getElementById('telaLogin').classList.remove('hidden');
-      
-      // Limpar campos de login
-      document.getElementById('inputEmpresa').value = '';
-      document.getElementById('inputUsuario').value = '';
-      document.getElementById('inputSenha').value = '';
-      document.getElementById('inputUsuario').readOnly = false;
-      document.getElementById('inputUsuario').style.background = '';
+      // Mostrar loading
+      Swal.fire({
+        title: 'Saindo...',
+        text: 'Finalizando sessão',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      try {
+              
+        // Limpar TODOS os dados da sessão
+        localStorage.removeItem("supervilaSessao");
+        sessionStorage.clear(); // Limpar sessionStorage também
+        
+        // Resetar variáveis globais
+        usuarioLogado = null;
+        dadosCache = { lista: [], saldoPrevio: 0 };
+        
+        // Destruir gráficos existentes
+        if (chartPizza) {
+          chartPizza.destroy();
+          chartPizza = null;
+        }
+        if (chartBarras) {
+          chartBarras.destroy();
+          chartBarras = null;
+        }
+        
+        // Limpar completamente o conteúdo das páginas
+        document.getElementById('libroCards').innerHTML = '';
+        document.getElementById('dreDetalhamento').innerHTML = '';
+        
+        // Resetar valores dos cards
+        document.getElementById("cardReceitas").innerText = 'R$ 0';
+        document.getElementById("cardPago").innerText = 'R$ 0';
+        document.getElementById("cardFluxo").innerText = 'R$ 0';
+        document.getElementById("cardPrevio").innerText = 'R$ 0';
+        document.getElementById("cardSaldo").innerText = 'R$ 0';
+        document.getElementById("bannerPrevio").innerText = 'R$ 0';
+        
+        // Resetar DRE
+        document.getElementById("dreReceitaBruta").innerText = 'R$ 0';
+        document.getElementById("dreDeducoes").innerText = 'R$ 0';
+        document.getElementById("dreReceitaLiquida").innerText = 'R$ 0';
+        document.getElementById("dreCustos").innerText = 'R$ 0';
+        document.getElementById("dreLucroBruto").innerText = 'R$ 0';
+        document.getElementById("dreDespesas").innerText = 'R$ 0';
+        document.getElementById("dreLucroLiquido").innerText = 'R$ 0';
+        document.getElementById("dreMargemBruta").innerText = '0%';
+        document.getElementById("dreMargemLiquida").innerText = '0%';
+        
+        // Fechar loading
+        Swal.close();
+        
+        // Esconder app e mostrar tela de login
+        document.getElementById('app').classList.remove('show');
+        document.getElementById('telaLogin').classList.remove('hidden');
+        
+        // Resetar completamente o formulário de login
+        const inputEmpresa = document.getElementById('inputEmpresa');
+        const inputUsuario = document.getElementById('inputUsuario');
+        const inputSenha = document.getElementById('inputSenha');
+        const msgErro = document.getElementById('msgErro');
+        const loginForm = document.getElementById('loginForm');
+        
+        inputEmpresa.value = '';
+        inputUsuario.value = '';
+        inputSenha.value = '';
+        inputUsuario.readOnly = false;
+        inputUsuario.style.background = '';
+        
+        // Esconder mensagem de erro
+        msgErro.classList.remove('show');
+        
+        // Garantir que o formulário esteja visível
+        loginForm.classList.remove('hidden');
+        loginForm.style.pointerEvents = '';
+        
+        // Focar no campo empresa
+        setTimeout(() => {
+          inputEmpresa.focus();
+        }, 100);
+        
+        // Mostrar mensagem de sucesso do logout
+        mostrarToastPersonalizado({
+          titulo: '✅ Desconectado',
+          mensagem: 'Você saiu do sistema com sucesso',
+          tipo: 'success',
+          tempo: 2000
+        });
+        
+      } catch (error) {
+        Swal.close();
+        console.error('Erro ao fazer logout:', error);
+        
+        // Mesmo com erro, forçar logout local
+        localStorage.removeItem("supervilaSessao");
+        usuarioLogado = null;
+        
+        // Recarregar a página como fallback
+        window.location.reload();
+      }
     }
   });
 }
 
 // ==================== VERIFICAR SESSÃO SALVA (CORRIGIDO) ====================
+
 function verificarSessaoSalva() {
   const s = localStorage.getItem("supervilaSessao");
   if (!s) return false;
   
   try {
     const d = JSON.parse(s);
-    // Verificar se os dados são válidos
-    if (d.usuario && d.senha && d.nome) {
-      usuarioLogado = d;
-      return true;
+    
+    // Verificação MAIS RIGOROSA dos dados
+    if (!d.usuario || !d.senha || !d.nome) {
+      console.log('Sessão inválida: dados incompletos');
+      localStorage.removeItem("supervilaSessao"); // Limpar sessão inválida
+      return false;
     }
+    
+    // Verificar se a sessão não expirou (opcional - 24 horas)
+    if (d.timestamp) {
+      const agora = Date.now();
+      const umDia = 24 * 60 * 60 * 1000;
+      if (agora - d.timestamp > umDia) {
+        console.log('Sessão expirada');
+        localStorage.removeItem("supervilaSessao");
+        return false;
+      }
+    }
+    
+    usuarioLogado = d;
+    return true;
+    
   } catch (e) {
     console.error('Erro ao recuperar sessão:', e);
+    localStorage.removeItem("supervilaSessao"); // Limpar sessão corrompida
+    return false;
   }
-  return false;
 }
 
 // ==================== INICIALIZAÇÃO (CORRIGIDA) ====================
@@ -2912,4 +3027,24 @@ window.addEventListener('load', function() {
       bottomNav.style.opacity = '1';
     }
   }, 1000);
+});
+
+
+// ==================== LIMPAR SESSÃO AO FECHAR O NAVEGADOR ====================
+window.addEventListener('beforeunload', function() {
+  // Não remover a sessão, apenas marcar para verificação no próximo load
+  sessionStorage.setItem('session_closed', 'true');
+});
+
+window.addEventListener('load', function() {
+  // Se a sessão foi fechada e o usuário tentar acessar sem login, forçar logout
+  if (sessionStorage.getItem('session_closed') === 'true') {
+    sessionStorage.removeItem('session_closed');
+    
+    // Verificar se o usuário está logado mas veio de uma sessão fechada
+    if (localStorage.getItem('supervilaSessao')) {
+      // Se tiver sessão, manter, mas pode ser que precise verificar novamente
+      console.log('Sessão recuperada após fechar navegador');
+    }
+  }
 });
